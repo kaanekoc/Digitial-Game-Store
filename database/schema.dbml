@@ -1,0 +1,234 @@
+Enum "users_role_enum" {
+  "user"
+  "admin"
+}
+
+Enum "game_images_image_type_enum" {
+  "cover"
+  "screenshot"
+}
+
+Enum "orders_status_enum" {
+  "pending"
+  "completed"
+  "failed"
+  "cancelled"
+}
+
+Enum "payments_status_enum" {
+  "pending"
+  "succeeded"
+  "failed"
+}
+
+Table "users" {
+  "id" "BIGINT UNSIGNED" [pk, increment]
+  "name" VARCHAR(100) [not null]
+  "email" VARCHAR(254) [not null]
+  "password_hash" VARCHAR(255) [not null]
+  "role" users_role_enum [not null, default: 'user']
+  "created_at" DATETIME [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    email [unique, name: "uq_users_email"]
+  }
+}
+
+Table "games" {
+  "id" "BIGINT UNSIGNED" [pk, increment]
+  "name" VARCHAR(200) [not null]
+  "description" TEXT [not null]
+  "developer" VARCHAR(200) [not null]
+  "publisher" VARCHAR(200) [not null]
+  "release_date" DATE
+  "price" DECIMAL(10,2) [not null]
+  "is_active" BOOLEAN [not null, default: TRUE]
+  "created_at" DATETIME [not null, default: `CURRENT_TIMESTAMP`]
+
+  Checks {
+    `price >= 0` [name: 'chk_games_price']
+    `is_active IN (0, 1)` [name: 'chk_games_is_active']
+  }
+
+  Indexes {
+    name [name: "idx_games_name"]
+  }
+}
+
+Table "genres" {
+  "id" "BIGINT UNSIGNED" [pk, increment]
+  "name" VARCHAR(100) [not null]
+
+  Indexes {
+    name [unique, name: "uq_genres_name"]
+  }
+}
+
+Table "game_genres" {
+  "game_id" "BIGINT UNSIGNED" [not null]
+  "genre_id" "BIGINT UNSIGNED" [not null]
+
+  Indexes {
+    (game_id, genre_id) [pk]
+  }
+}
+
+Table "game_images" {
+  "id" "BIGINT UNSIGNED" [pk, increment]
+  "game_id" "BIGINT UNSIGNED" [not null]
+  "image_url" VARCHAR(2048) [not null]
+  "image_type" game_images_image_type_enum [not null, default: 'screenshot']
+  "sort_order" "INT UNSIGNED" [not null, default: 0]
+}
+
+Table "cart_items" {
+  "user_id" "BIGINT UNSIGNED" [not null]
+  "game_id" "BIGINT UNSIGNED" [not null]
+  "added_at" DATETIME [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (user_id, game_id) [pk]
+  }
+}
+
+Table "orders" {
+  "id" "BIGINT UNSIGNED" [pk, increment]
+  "user_id" "BIGINT UNSIGNED" [not null]
+  "checkout_key" VARCHAR(100) [not null, note: 'Ayni satin alma isteginin tekrarinda ayni anahtar kullanilir']
+  "status" orders_status_enum [not null, default: 'pending']
+  "created_at" DATETIME [not null, default: `CURRENT_TIMESTAMP`]
+  "completed_at" DATETIME
+
+  Checks {
+    `(status = 'completed' AND completed_at IS NOT NULL)
+    OR (status <> 'completed' AND completed_at IS NULL)` [name: 'chk_orders_completion']
+  }
+
+  Indexes {
+    checkout_key [unique, name: "uq_orders_checkout_key"]
+    (id, user_id) [unique, name: "uq_orders_id_user"]
+    (user_id, created_at) [name: "idx_orders_user_created"]
+  }
+}
+
+Table "order_items" {
+  "order_id" "BIGINT UNSIGNED" [not null]
+  "game_id" "BIGINT UNSIGNED" [not null]
+  "unit_price" DECIMAL(10,2) [not null, note: 'Satin alma anindaki fiyat']
+
+  Checks {
+    `unit_price >= 0` [name: 'chk_order_items_price']
+  }
+
+  Indexes {
+    (order_id, game_id) [pk]
+  }
+}
+
+Table "payments" {
+  "id" "BIGINT UNSIGNED" [pk, increment]
+  "order_id" "BIGINT UNSIGNED" [not null]
+  "provider" VARCHAR(100) [not null]
+  "provider_payment_id" VARCHAR(191) [not null]
+  "payment_method" VARCHAR(50) [not null]
+  "amount" DECIMAL(10,2) [not null]
+  "status" payments_status_enum [not null, default: 'pending']
+  "created_at" DATETIME [not null, default: `CURRENT_TIMESTAMP`]
+  "processed_at" DATETIME
+
+  Checks {
+    `amount >= 0` [name: 'chk_payments_amount']
+  }
+
+  Indexes {
+    (provider, provider_payment_id) [unique, name: "uq_payments_provider_reference"]
+  }
+}
+
+Table "user_games" {
+  "user_id" "BIGINT UNSIGNED" [not null]
+  "game_id" "BIGINT UNSIGNED" [not null]
+  "order_id" "BIGINT UNSIGNED" [not null]
+  "acquired_at" DATETIME [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (user_id, game_id) [pk]
+  }
+}
+
+Table "achievements" {
+  "id" "BIGINT UNSIGNED" [pk, increment]
+  "game_id" "BIGINT UNSIGNED" [not null]
+  "name" VARCHAR(200) [not null]
+  "description" TEXT [not null]
+  "completion_condition" TEXT [not null]
+
+  Indexes {
+    (game_id, name) [unique, name: "uq_achievements_game_name"]
+    (id, game_id) [unique, name: "uq_achievements_id_game"]
+  }
+}
+
+Table "user_achievements" {
+  "user_id" "BIGINT UNSIGNED" [not null]
+  "achievement_id" "BIGINT UNSIGNED" [not null]
+  "game_id" "BIGINT UNSIGNED" [not null]
+  "unlocked_at" DATETIME [not null, default: `CURRENT_TIMESTAMP`]
+
+  Indexes {
+    (user_id, achievement_id) [pk]
+  }
+}
+
+Table "activity_logs" {
+  "id" "BIGINT UNSIGNED" [pk, increment]
+  "actor_user_id" BIGINT
+  "game_id" BIGINT
+  "order_id" BIGINT
+  "action" VARCHAR(100) [not null]
+  "old_values" JSON
+  "new_values" JSON
+  "created_at" DATETIME [not null, default: `CURRENT_TIMESTAMP`]
+
+  Checks {
+    `game_id IS NOT NULL OR order_id IS NOT NULL` [name: 'chk_activity_logs_target']
+  }
+}
+
+Ref "fk_game_genres_game":"games"."id" <? "game_genres"."game_id"
+
+Ref "fk_game_genres_genre":"genres"."id" <? "game_genres"."genre_id"
+
+Ref "fk_game_images_game":"games"."id" <? "game_images"."game_id"
+
+Ref "fk_cart_items_user":"users"."id" <? "cart_items"."user_id"
+
+Ref "fk_cart_items_game":"games"."id" <? "cart_items"."game_id"
+
+Ref "fk_orders_user":"users"."id" <? "orders"."user_id"
+
+Ref "fk_order_items_order":"orders"."id" <? "order_items"."order_id"
+
+Ref "fk_order_items_game":"games"."id" <? "order_items"."game_id"
+
+Ref "fk_payments_order":"orders"."id" <? "payments"."order_id"
+
+Ref "fk_user_games_user":"users"."id" <? "user_games"."user_id"
+
+Ref "fk_user_games_game":"games"."id" <? "user_games"."game_id"
+
+Ref "fk_user_games_order_owner":"orders".("id", "user_id") <? "user_games".("order_id", "user_id")
+
+Ref "fk_user_games_order_item":"order_items".("order_id", "game_id") <? "user_games".("order_id", "game_id")
+
+Ref "fk_achievements_game":"games"."id" <? "achievements"."game_id"
+
+Ref "fk_user_achievements_ownership":"user_games".("user_id", "game_id") <? "user_achievements".("user_id", "game_id")
+
+Ref "fk_user_achievements_definition":"achievements".("id", "game_id") <? "user_achievements".("achievement_id", "game_id")
+
+Ref "fk_activity_logs_actor":"users"."id" ?<? "activity_logs"."actor_user_id"
+
+Ref "fk_activity_logs_game":"games"."id" ?<? "activity_logs"."game_id"
+
+Ref "fk_activity_logs_order":"orders"."id" ?<? "activity_logs"."order_id"
