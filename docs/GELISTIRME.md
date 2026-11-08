@@ -6,7 +6,7 @@ Her aşama ayrı commit ve push ile teslim edilir. İşlevler README'deki iş ak
 | --- | --- | --- |
 | 1 | Next.js, TypeScript, ortam ayarları ve geliştirme planı | Tamamlandı |
 | 2 | MySQL kurulumu, örnek veriler, 3 trigger ve 3 stored procedure | Tamamlandı |
-| 3 | Kayıt, giriş, güvenli oturum ve yetki kontrolü | Sırada |
+| 3 | Kayıt, giriş, güvenli oturum ve yetki kontrolü | Tamamlandı |
 | 4 | Oyun listesi, arama, tür filtresi ve detay | Sırada |
 | 5 | Sepet, fiyat onayı, sipariş ve demo ödeme | Sırada |
 | 6 | Kütüphane, sipariş geçmişi ve doğrulanmış başarım API'si | Sırada |
