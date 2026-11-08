@@ -4,7 +4,6 @@ import { cache } from "react";
 import { query } from "./db";
 import { signSession, verifySession } from "./session";
 import type { User } from "./models";
-import { UserError } from "./result";
 
 export const currentUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get("nexus_session")?.value;
@@ -21,7 +20,7 @@ export async function requireUser() {
 }
 export async function requireAdmin() {
   const user = await requireUser();
-  if (user.role !== "admin") throw new UserError("Bu işlem için yönetici yetkisi gerekiyor.");
+  if (user.role !== "admin") redirect("/");
   return user;
 }
 export async function createSession(id: number) {

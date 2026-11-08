@@ -10,7 +10,7 @@ Her aşama ayrı commit ve push ile teslim edilir. İşlevler README'deki iş ak
 | 4 | Oyun listesi, arama, tür filtresi ve detay | Tamamlandı |
 | 5 | Sepet, fiyat onayı, sipariş ve demo ödeme | Tamamlandı |
 | 6 | Kütüphane, sipariş geçmişi ve doğrulanmış başarım API'si | Tamamlandı |
-| 7 | Yönetim: oyun, tür, başarım, kullanıcı yetkileri ve loglar | Sırada |
+| 7 | Yönetim: oyun, tür, başarım, kullanıcı yetkileri ve loglar | Tamamlandı |
 | 8 | Entegrasyon testleri, üretim derlemesi ve sunum belgeleri | Sırada |
 
 ## Tasarım kararları
