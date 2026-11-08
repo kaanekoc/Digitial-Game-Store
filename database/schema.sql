@@ -2,8 +2,7 @@
 -- Yalnizca sema: trigger, procedure, uygulama kodu ve ornek veri icermez.
 -- Para tutarlari TRY cinsindedir. Sifreler password_hash olarak saklanir.
 -- Siparis toplami order_items.unit_price toplami uzerinden hesaplanir.
--- Satis/sahiplik kontrolu, odeme ve kutuphaneye ekleme akisi daha sonra
--- uygulamada transaction ile gerceklestirilmelidir. Loglar otomatik yazilmaz.
+-- Is akisi icin bu dosyadan sonra routines.sql calistirilir.
 
 CREATE DATABASE IF NOT EXISTS digital_game_store
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
