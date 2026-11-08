@@ -1,0 +1,48 @@
+name: Ders projesi kontrolleri
+on: [push, pull_request]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test-password
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -ptest-password"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: test-password
+      DB_NAME: digital_game_store_ci
+      SESSION_SECRET: ci-only-session-secret-with-more-than-32-characters
+      GAME_INTEGRATION_SECRET: ci-only-game-integration-secret-more-than-32-characters
+      DEMO_MODE: "true"
+      APP_URL: http://localhost:3000
+      SEED_ADMIN_PASSWORD: Admin123!
+      SEED_USER_PASSWORD: Oyuncu123!
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run db:setup
+      - run: npm run db:seed
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-results
+          path: test-results/

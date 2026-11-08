@@ -60,4 +60,128 @@ Oyun bilgilerindeki değişiklikler, satış durumunun güncellenmesi ve sipari�
 
 ## Proje Durumu
 
-Bu depo şu anda proje kapsamını ve planlanan iş akışlarını tanımlar. Uygulama geliştirmesine henüz başlanmamıştır.
+Proje, README'deki iş akışlarıyla çalışan bir ders uygulaması olarak tamamlandı. Geliştirme sekiz aşamaya bölündü; her aşama ayrı commit ile kaydedilip GitHub'a gönderildi. Ayrıntılar [geliştirme günlüğünde](docs/GELISTIRME.md), ders sunumu sırası [sunum rehberinde](docs/SUNUM.md) bulunur.
+
+## Kurulum ve Çalıştırma
+
+Node.js 22+, npm ve MySQL 8.0.16+ gerekir (MySQL 8.4 önerilir). MySQL sunucusunu başlatın; uygulama verileri gerçekten MySQL'de tutulur.
+
+```powershell
+npm install
+Copy-Item .env.example .env
+```
+
+`.env` içindeki `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` ve `DB_NAME` değerlerini kendi MySQL kurulumunuza göre ayarlayın. Wamp kullanıyorsanız MySQL portunu Wamp ayarından kontrol edin. Veritabanı adı yalnızca harf, rakam ve alt çizgi içermelidir.
+
+`SESSION_SECRET` ve `GAME_INTEGRATION_SECRET` için **birbirinden farklı**, en az 32 karakterlik rastgele değerler yazın. Her biri için şu komutla değer üretebilirsiniz:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+Ardından boş bir veritabanını kurup örnek verileri ekleyin:
+
+```powershell
+npm run db:setup
+npm run db:seed
+npm run dev
+```
+
+Tarayıcıdan [localhost:3000](http://localhost:3000) adresini açın. PowerShell, `npm.ps1` çalıştırmayı engellerse komutları `npm.cmd` ile çalıştırabilirsiniz.
+
+`db:setup`, 13 tabloyu, 3 trigger'ı ve 3 stored procedure'ü oluşturur. Hedef veritabanında tablo varsa durur; mevcut verileri silmez. Daha önce yalnızca `schema.sql` kurulmuşsa `npm run db:routines` ile eksik SQL rutinlerini ekleyebilirsiniz. Bu komut mevcut rutinleri güncellemek için de kullanılabilir. `db:seed` yalnızca boş oyun kataloğuna örnek veri ekler ve mevcut kayıtları değiştirmez.
+
+Üretim derlemesini yerelde çalıştırmak için:
+
+```powershell
+npm run build
+npm start
+```
+
+## Demo Hesapları ve Kapsam
+
+Örnek veriler 6 kurmaca oyun, 5 tür, 12 başarım ve 2 hesap içerir. Kapaklar projeye ait yerel SVG dosyalarıdır. Şifreler `.env` içindeki seed ayarlarından alınır; aşağıdakiler `.env.example` varsayılanlarıdır:
+
+| Rol       | E-posta              | Örnek şifre  |
+| --------- | -------------------- | ------------ |
+| Yönetici  | `admin@nexus.local`  | `Admin123!`  |
+| Kullanıcı | `oyuncu@nexus.local` | `Oyuncu123!` |
+
+`DEMO_MODE=true` olduğunda ödeme ekranında başarılı veya başarısız sonuç seçilebilir. **Gerçek para çekilmez ve kart bilgisi alınmaz.** Yönetici panelindeki oyun olayı test aracı da bu ayarla açılır. `false` yapıldığında bu iki demo işlemi sunucuda da kapatılır. Gerçek ödeme sağlayıcısı ve gerçek oyun sunucusu entegrasyonu bu ders tesliminin kapsamı dışındadır.
+
+## Sayfalar
+
+| Adres                             | İşlev                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------ |
+| `/`                               | Oyun mağazası, isim araması ve tür filtresi                              |
+| `/oyunlar/[id]`                   | Açıklama, görseller, fiyat ve başarım tanımları                          |
+| `/kayit`, `/giris`                | Hesap oluşturma ve giriş                                                 |
+| `/sepet`                          | Sepeti yönetme ve güncel toplamı onaylama                                |
+| `/odeme/[id]`                     | Siparişin demo ödemesi                                                   |
+| `/kutuphane`, `/kutuphane/[id]`   | Sahip olunan oyunlar, edinilme tarihi ve başarımlar                      |
+| `/siparisler`, `/siparisler/[id]` | Kullanıcının sipariş ve ödeme geçmişi                                    |
+| `/yonetim`                        | Oyun, tür, başarım, kullanıcı yetkisi, sipariş ve işlem günlüğü yönetimi |
+| `/api/integration/achievements`   | Anahtarla doğrulanan oyun sunucusu başarım API'si                        |
+
+## Veritabanı ve SQL
+
+- [schema.sql](database/schema.sql): tablolar, foreign key'ler, unique ve check kuralları.
+- [schema.dbml](database/schema.dbml): dbdiagram.io editörüne doğrudan yapıştırılacak tablo diyagramı. Trigger/procedure tanımları diyagramdan ayrı tutulur.
+- [routines.sql](database/routines.sql): kullanılan 3 trigger ve 3 stored procedure.
+- [SQL açıklamaları](docs/VERITABANI.md): parametreler, transaction mantığı ve dosyaların görevleri.
+
+Sepet toplamı güncel oyun fiyatlarından, geçmiş sipariş toplamı ise `order_items.unit_price` değerlerinden hesaplanır. Para birimi TRY'dir. Kütüphane ve envanter aynı `user_games` kayıtlarını kullanır. Oyunlar silinmek yerine satışa kapatılır; önceki sahiplik korunur.
+
+| Tür       | Ad                      | Görev                                                                          |
+| --------- | ----------------------- | ------------------------------------------------------------------------------ |
+| Trigger   | `trg_cart_validate`     | Satışta olmayan veya sahip olunan oyunun sepete eklenmesini engeller.          |
+| Trigger   | `trg_game_audit`        | Oyun bilgilerinin önceki/yeni değerlerini günlüğe yazar.                       |
+| Trigger   | `trg_order_audit`       | Sipariş durum geçişini günlüğe yazar.                                          |
+| Procedure | `sp_checkout`           | Sepeti doğrular, onaylanan toplamı karşılaştırır, fiyatları siparişe kopyalar. |
+| Procedure | `sp_complete_payment`   | Ödemeyi, sipariş durumunu ve sahipliği tek transaction içinde sonuçlandırır.   |
+| Procedure | `sp_unlock_achievement` | Sahiplik kontrolü yapar ve başarımı yalnızca bir kez kaydeder.                 |
+
+## Başarım Entegrasyonu
+
+Oyun sunucusu `POST /api/integration/achievements` adresine `Authorization: Bearer <GAME_INTEGRATION_SECRET>` başlığı ve JSON gövdesi gönderir:
+
+```json
+{
+  "userId": 2,
+  "achievementId": 1,
+  "event": "first_mission_completed"
+}
+```
+
+Kimlikler kendi veritabanınızdaki kayıtlara karşılık gelmelidir. Sunucu anahtarı doğrulanır, `event` ilgili başarımın `completion_condition` değeriyle karşılaştırılır ve kullanıcının oyuna sahip olduğu kontrol edilir. Aynı olayın tekrar gönderilmesi ikinci bir başarım oluşturmaz. Bu anahtar tarayıcıya gönderilmez. Ders sırasında gerçek oyun sunucusu yerine yönetici panelindeki **Oyun entegrasyonu test aracı** kullanılabilir.
+
+## Testler
+
+```powershell
+npm run typecheck
+npm test
+npx playwright install chromium
+npm run test:e2e
+npm run build
+```
+
+Testler için veritabanı kurulmuş, seed çalıştırılmış ve `DEMO_MODE=true` olmalıdır. Entegrasyon testleri geçici kullanıcı/oyun kayıtları oluşturur ve kendi kayıtlarını temizler; yine de testlerde ayrı bir `DB_NAME` kullanılması uygundur. `npm test`, gerçek MySQL üstünde 3 trigger ve 3 procedure'ü; ayrıca oturum imzasını ve şifre sınırlarını sınar. Tarayıcı testleri kayıt, yetki, arama, sepet, fiyat değişikliği, başarısız/başarılı ödeme, sahiplik, başarım API'si, yönetim ve mobil görünümü kapsar.
+
+Bilgisayarda Chrome zaten yüklüyse tarayıcı indirmeden PowerShell'de çalıştırılabilir:
+
+```powershell
+$env:PLAYWRIGHT_CHANNEL="chrome"
+npm run test:e2e
+```
+
+GitHub Actions, MySQL 8.4 üzerinde aynı kontrolleri otomatik çalıştıracak şekilde yapılandırılmıştır. Yerel doğrulama MySQL 9.1 ve Chrome ile yapılmıştır.
+
+## Uygulama Notları
+
+- Şifreler bcrypt ile hash'lenir; oturumlar 7 gün geçerli imzalı HttpOnly çerezlerdir. Rol, her istekte veritabanından okunur.
+- Her mutasyon sunucuda kimlik/yetki ve girdi kontrolünden geçer; SQL sorguları parametrelidir. Server Actions, Next.js'in Origin kontrolünü kullanır.
+- Hatalı girişler aynı e-posta için 15 dakikada 5 denemeyle sınırlandırılır. Bu sayaç tek sunuculu ders uygulamasının belleğindedir; sunucu yeniden başlatılınca sıfırlanır.
+- `checkout_key` aynı satın alma isteğinin ikinci sipariş oluşturmasını, ödeme referansı aynı ödeme kaydının tekrar eklenmesini, bileşik anahtarlar mükerrer sahiplik ve başarımı engeller.
+- Sipariş ve ödeme işlemleri kullanıcı satırını kilitleyerek aynı kullanıcının eşzamanlı işlemlerini sıraya alır. Güncel fiyat ve satış durumu ödeme sırasında tekrar kontrol edilir.
+- Yönetimde sipariş ve günlük listeleri son 100 kaydı gösterir; mağaza/kütüphane araması en fazla 100 sonuç getirir. Bunlar ders ölçeği için belirlenmiş sınırlardır.
+- `.env` ve veritabanı verileri Git'e eklenmez. Uygulamanın genel kullanıma açılması ve gerçek ödeme alması bu teslimde yapılmamıştır.

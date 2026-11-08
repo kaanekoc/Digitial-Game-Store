@@ -7,7 +7,8 @@ import { passwordSchema } from "../src/lib/validation";
 test("oturum imzasi kullaniciyi korur; degistirilmis token reddedilir", async () => {
   const token = await signSession(42);
   assert.equal(await verifySession(token), 42);
-  const parts = token.split("."); parts[1] = Buffer.from('{"sub":"1"}').toString("base64url");
+  const parts = token.split(".");
+  parts[1] = Buffer.from('{"sub":"1"}').toString("base64url");
   assert.equal(await verifySession(parts.join(".")), null);
   assert.equal(await verifySession("gecersiz"), null);
 });

@@ -7,12 +7,37 @@ export const gameSelect = `SELECT g.*,
   FROM games g`;
 
 export async function getGames(search = "", genre = "", libraryUser?: number) {
-  const conditions = libraryUser ? ["EXISTS(SELECT 1 FROM user_games ug WHERE ug.game_id=g.id AND ug.user_id=?)"] : ["g.is_active=1"];
+  const conditions = libraryUser
+    ? [
+        "EXISTS(SELECT 1 FROM user_games ug WHERE ug.game_id=g.id AND ug.user_id=?)",
+      ]
+    : ["g.is_active=1"];
   const args: (string | number)[] = libraryUser ? [libraryUser] : [];
-  if (search) { conditions.push("g.name LIKE ? ESCAPE '='"); args.push(`%${search.slice(0, 200).replace(/[=%_]/g, "=$&")}%`); }
-  if (/^\d+$/.test(genre)) { conditions.push("EXISTS(SELECT 1 FROM game_genres gg WHERE gg.game_id=g.id AND gg.genre_id=?)"); args.push(Number(genre)); }
-  return query<Game>(`${gameSelect} WHERE ${conditions.join(" AND ")} ORDER BY g.id DESC LIMIT 100`, args);
+  if (search) {
+    conditions.push("g.name LIKE ? ESCAPE '='");
+    args.push(`%${search.slice(0, 200).replace(/[=%_]/g, "=$&")}%`);
+  }
+  if (/^\d+$/.test(genre)) {
+    conditions.push(
+      "EXISTS(SELECT 1 FROM game_genres gg WHERE gg.game_id=g.id AND gg.genre_id=?)",
+    );
+    args.push(Number(genre));
+  }
+  return query<Game>(
+    `${gameSelect} WHERE ${conditions.join(" AND ")} ORDER BY g.id DESC LIMIT 100`,
+    args,
+  );
 }
-export async function getGenres() { return query<Genre>("SELECT * FROM genres ORDER BY name"); }
-export const money = (value: number) => new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(value);
-export const date = (value: string | null) => value ? new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(new Date(value.replace(" ", "T"))) : "Belirtilmedi";
+export async function getGenres() {
+  return query<Genre>("SELECT * FROM genres ORDER BY name");
+}
+export const money = (value: number) =>
+  new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(
+    value,
+  );
+export const date = (value: string | null) =>
+  value
+    ? new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(
+        new Date(value.replace(" ", "T")),
+      )
+    : "Belirtilmedi";

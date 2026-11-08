@@ -106,7 +106,10 @@ main: BEGIN
     FROM order_items oi JOIN games g ON g.id = oi.game_id WHERE oi.order_id = p_order FOR UPDATE;
   IF v_count = 0 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Siparis bos.'; END IF;
   IF p_success THEN
-    IF v_total <> v_current THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Fiyat degisti. Yeni bir siparis olusturun.'; END IF;
+    IF v_total <> v_current OR EXISTS (SELECT 1 FROM order_items oi JOIN games g ON g.id=oi.game_id
+      WHERE oi.order_id=p_order AND oi.unit_price<>g.price) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Fiyat degisti. Yeni bir siparis olusturun.';
+    END IF;
     IF EXISTS (SELECT 1 FROM order_items oi JOIN games g ON g.id = oi.game_id
       LEFT JOIN user_games ug ON ug.user_id = p_user AND ug.game_id = oi.game_id
       WHERE oi.order_id = p_order AND (g.is_active = 0 OR ug.game_id IS NOT NULL)) THEN

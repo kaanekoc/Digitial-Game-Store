@@ -10,7 +10,10 @@ export const currentUser = cache(async (): Promise<User | null> => {
   if (!token) return null;
   const id = await verifySession(token);
   if (!id) return null;
-  const users = await query<User>("SELECT id,name,email,role FROM users WHERE id=?", [id]);
+  const users = await query<User>(
+    "SELECT id,name,email,role FROM users WHERE id=?",
+    [id],
+  );
   return users[0] ?? null;
 });
 export async function requireUser() {
@@ -25,7 +28,12 @@ export async function requireAdmin() {
 }
 export async function createSession(id: number) {
   (await cookies()).set("nexus_session", await signSession(id), {
-    httpOnly: true, sameSite: "lax", secure: new URL(process.env.APP_URL ?? "http://localhost:3000").protocol === "https:",
-    maxAge: 60 * 60 * 24 * 7, path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure:
+      new URL(process.env.APP_URL ?? "http://localhost:3000").protocol ===
+      "https:",
+    maxAge: 60 * 60 * 24 * 7,
+    path: "/",
   });
 }

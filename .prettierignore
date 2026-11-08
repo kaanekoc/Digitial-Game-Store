@@ -1,0 +1,4 @@
+public/
+database/
+package-lock.json
+next-env.d.ts
